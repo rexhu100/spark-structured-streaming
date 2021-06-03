@@ -1,5 +1,5 @@
 import org.apache.spark.sql.streaming._
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.functions._
 
 object WordCountStream {
@@ -23,12 +23,16 @@ object WordCountStream {
       .groupBy($"word")
       .agg(count("value").alias("Count"))
 
-    val streamingQuery: StreamingQuery = countDF.writeStream
+    val checkpointDir = "temp"
+
+    val streamQuery = countDF.writeStream
       .format("console")
       .outputMode("complete")
+      .trigger(Trigger.ProcessingTime("1 second"))
+      .option("checkpointLocation", checkpointDir)
       .start()
 
-    streamingQuery.awaitTermination()
+    streamQuery.awaitTermination()
   }
 
 }
